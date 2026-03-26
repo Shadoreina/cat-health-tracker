@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Здоровье кота 🐾</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #070d14;
+    color: #e2e8f0;
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  button { font-family: inherit; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0f2027 0%, #0a1628 50%, #070d14 100%);
+    border-bottom: 1px solid #1e3a5f;
+    padding: 24px 16px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-glow {
+    position: absolute; top: -40px; right: -40px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(96,165,250,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .header-paw { font-size: 32px; }
+  .header-titles { flex: 1; }
+  .header-title { font-size: 20px; font-weight: bold; letter-spacing: 1px; color: #f0f9ff; }
+  .header-sub { font-size: 11px; color: #64748b; letter-spacing: 2px; text-transform: uppercase; }
+  .edit-btn {
+    border-radius: 99px; font-size: 11px; padding: 4px 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px; border: 1px solid;
+    background: none; transition: all 0.2s;
+  }
+  .edit-btn.view { border-color: #334155; color: #64748b; background: #0f172a; }
+  .edit-btn.edit { border-color: #4ade80; color: #4ade80; background: #052e16; }
+
+  /* Progress */
+  .progress-wrap { margin-top: 14px; }
+  .progress-labels { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .progress-label { font-size: 12px; color: #94a3b8; }
+  .progress-count { font-size: 12px; color: #60a5fa; font-weight: bold; }
+  .progress-bar { background: #1e293b; border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #4ade80); border-radius: 99px; transition: width 0.6s ease; }
+
+  /* Stats */
+  .stats { display: flex; gap: 10px; margin-top: 14px; }
+  .stat-card { flex: 1; border-radius: 10px; padding: 8px; text-align: center; border: 1px solid; }
+  .stat-icon { font-size: 16px; }
+  .stat-num { font-size: 15px; font-weight: bold; }
+  .stat-label { font-size: 10px; color: #64748b; }
+
+  /* Upcoming */
+  .upcoming { padding: 10px 16px 0; }
+  .alert-card { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; border: 1px solid; border-left: 3px solid; }
+  .alert-name { font-size: 13px; font-weight: bold; color: #f0f9ff; }
+  .alert-date { font-size: 11px; color: #94a3b8; }
+  .alert-badge { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+
+  /* Tabs */
+  .tabs { display: flex; padding: 14px 16px 0; border-bottom: 1px solid #1e293b; }
+  .tab { flex: 1; background: none; border: none; padding: 7px 0 9px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .tab.active { border-bottom: 2px solid #60a5fa; color: #60a5fa; }
+  .tab.inactive { border-bottom: 2px solid transparent; color: #64748b; }
+
+  /* Filters */
+  .filters { display: flex; gap: 8px; padding: 14px 16px 0; flex-wrap: wrap; }
+  .filter-btn { border-radius: 99px; padding: 5px 12px; font-size: 12px; cursor: pointer; border: 1px solid; transition: all 0.2s; }
+  .filter-btn.active { background: #1e3a5f; border-color: #3b82f6; color: #60a5fa; }
+  .filter-btn.inactive { background: #0f172a; border-color: #1e293b; color: #64748b; }
+
+  /* Events */
+  .events { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .event-card { border-radius: 12px; padding: 12px 12px; display: flex; align-items: flex-start; gap: 10px; border: 1px solid; border-left: 3px solid; transition: opacity 0.2s; }
+  .check-btn { width: 22px; height: 22px; min-width: 22px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 2px; transition: all 0.2s; }
+  .event-body { flex: 1; }
+  .event-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .event-name { font-size: 14px; font-weight: bold; }
+  .event-meta { font-size: 11px; color: #64748b; }
+  .event-note { margin-left: 6px; color: #475569; }
+  .event-right { display: flex; align-items: center; gap: 6px; }
+  .soon-badge { background: #1e3a5f; color: #93c5fd; font-size: 10px; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .del-btn { background: none; border: none; color: #334155; cursor: pointer; font-size: 14px; padding: 2px 4px; }
+
+  /* Stats tab */
+  .stat-section { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .stat-block { border-radius: 14px; padding: 14px; border: 1px solid; }
+  .stat-block-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .stat-block-pct { font-size: 20px; font-weight: bold; }
+  .stat-mini-bar { border-radius: 99px; height: 6px; margin-bottom: 10px; }
+  .stat-mini-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+  .stat-item { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 4px; }
+
+  /* Add form */
+  .add-wrap { padding: 8px 16px 30px; }
+  .add-hint { width: 100%; background: #0a1628; border: 1px dashed #1e293b; border-radius: 12px; color: #334155; padding: 14px; font-size: 12px; cursor: pointer; letter-spacing: 1px; }
+  .add-trigger { width: 100%; background: linear-gradient(135deg, #1e3a5f, #0f2027); border: 1px dashed rgba(59,130,246,0.27); border-radius: 12px; color: #60a5fa; padding: 14px; font-size: 14px; cursor: pointer; letter-spacing: 1px; }
+  .form-box { background: #0a1628; border: 1px solid #1e3a5f; border-radius: 14px; padding: 16px; }
+  .form-title { font-size: 14px; font-weight: bold; color: #f0f9ff; margin-bottom: 12px; }
+  .type-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  .type-btn { flex: 1; border-radius: 8px; padding: 8px 4px; font-size: 11px; cursor: pointer; border: 1px solid; transition: all 0.2s; }
+  .form-input { width: 100%; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #e2e8f0; padding: 10px 12px; font-size: 13px; margin-bottom: 8px; font-family: inherit; }
+  .form-actions { display: flex; gap: 8px; }
+  .btn-save { flex: 2; background: linear-gradient(135deg, #1d4ed8, #2563eb); border: none; border-radius: 8px; color: #fff; padding: 11px; font-size: 13px; cursor: pointer; }
+  .btn-cancel { flex: 1; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #64748b; padding: 11px; font-size: 13px; cursor: pointer; }
+
+  /* PIN */
+  .pin-overlay { position: fixed; inset: 0; background: rgba(7,13,20,0.97); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .pin-box { background: #0a1628; border: 1px solid #1e3a5f; border-radius: 20px; padding: 30px 26px; width: 260px; text-align: center; }
+  .pin-box.shake { animation: shake 0.5s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 20px 0 24px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; transition: all 0.15s; }
+  .pin-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-key { border: 1px solid #1e293b; border-radius: 12px; font-size: 20px; font-weight: bold; padding: 13px 0; cursor: pointer; background: #0f2027; color: #e2e8f0; }
+  .pin-key.del { background: #0f172a; color: #94a3b8; font-size: 18px; }
+  .pin-cancel { margin-top: 16px; background: none; border: none; color: #475569; font-size: 13px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ── Данные ──────────────────────────────────────────────────────────────────
+const TYPES = {
+  vaccine:  { label: 'Вакцинация', icon: '💉', color: '#4ade80', bg: '#052e16', border: '#4ade8033' },
+  vet:      { label: 'Ветеринар',  icon: '🩺', color: '#60a5fa', bg: '#0c1a2e', border: '#60a5fa33' },
+  medicine: { label: 'Лекарство',  icon: '💊', color: '#f472b6', bg: '#2d0a1e', border: '#f472b633' },
+};
+const PIN = '1995';
+const LS_KEY = 'cat_health_v1';
+
+function loadEvents() {
+  try { const d = localStorage.getItem(LS_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
+}
+function saveEvents(evs) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(evs)); } catch {}
+}
+
+let events = loadEvents();
+let canEdit = false;
+let filter = 'all';
+let activeTab = 'timeline';
+let showForm = false;
+let formType = 'vaccine';
+let showPin = false;
+let pinValue = '';
+let pinShake = false;
+
+function fmt(d) {
+  return new Date(d).toLocaleDateString('ru-RU', { day:'2-digit', month:'short', year:'numeric' });
+}
+function upcoming(d) { return new Date(d) >= new Date(); }
+function daysUntil(d) { return Math.ceil((new Date(d) - new Date()) / 86400000); }
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  const done = events.filter(e => e.done).length;
+  const total = events.length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const upList = events.filter(e => !e.done && upcoming(e.date)).sort((a,b) => new Date(a.date)-new Date(b.date));
+  const filtered = events.filter(e => filter==='all' || e.type===filter).sort((a,b) => new Date(b.date)-new Date(a.date));
+
+  function countDone(t) { return events.filter(e => e.type===t && e.done).length; }
+
+  let html = '';
+
+  // PIN overlay
+  if (showPin) {
+    const dots = [0,1,2,3].map(i => `<div class="pin-dot" style="background:${i<pinValue.length?'#60a5fa':'transparent'};border:2px solid ${i<pinValue.length?'#60a5fa':'#334155'}"></div>`).join('');
+    const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+    const khtml = keys.map((k,i) => k==='' ? '<div></div>' : `<button class="pin-key${k==='⌫'?' del':''}" onclick="pinPress('${k}')">${k}</button>`).join('');
+    html += `<div class="pin-overlay"><div class="pin-box${pinShake?' shake':''}" id="pinbox">
+      <div style="font-size:30px;margin-bottom:6px">🔒</div>
+      <div style="font-size:15px;font-weight:bold;color:#f0f9ff;margin-bottom:3px">Режим редактирования</div>
+      <div style="font-size:12px;color:#64748b">Введите PIN-код</div>
+      <div class="pin-dots">${dots}</div>
+      <div class="pin-keys">${khtml}</div>
+      <button class="pin-cancel" onclick="closePin()">Отмена</button>
+    </div></div>`;
+  }
+
+  // Header
+  const editBtnClass = canEdit ? 'edit' : 'view';
+  const editBtnText = canEdit ? '✏️ Редакт.' : '🔒 Просмотр';
+  html += `<div class="header"><div class="header-glow"></div>
+    <div class="header-top">
+      <div class="header-paw">🐾</div>
+      <div class="header-titles">
+        <div class="header-title">Здоровье кота</div>
+        <div class="header-sub">Медицинский журнал</div>
+      </div>
+      <button class="edit-btn ${editBtnClass}" onclick="toggleEdit()">${editBtnText}</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span class="progress-label">Выполнено мероприятий</span>
+        <span class="progress-count">${done} / ${total}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="stats">`;
+  for (const [k,t] of Object.entries(TYPES)) {
+    html += `<div class="stat-card" style="background:${t.bg};border-color:${t.color}22">
+      <div class="stat-icon">${t.icon}</div>
+      <div class="stat-num" style="color:${t.color}">${countDone(k)}</div>
+      <div class="stat-label">${t.label.toLowerCase()}</div>
+    </div>`;
+  }
+  html += `</div></div>`;
+
+  // Upcoming alerts
+  if (upList.length > 0) {
+    html += `<div class="upcoming">`;
+    for (const e of upList.slice(0,2)) {
+      const t = TYPES[e.type];
+      const days = daysUntil(e.date);
+      const urgent = days <= 7;
+      html += `<div class="alert-card" style="background:${t.bg};border-color:${t.color}44;border-left-color:${t.color}">
+        <span style="font-size:18px">${t.icon}</span>
+        <div style="flex:1"><div class="alert-name">${e.name}</div><div class="alert-date">${fmt(e.date)}</div></div>
+        <div class="alert-badge" style="background:${urgent?'#7f1d1d':'#1e3a5f'};color:${urgent?'#fca5a5':'#93c5fd'}">
+          ${days===0?'Сегодня':days<0?'Просрочено':'через '+days+'д'}
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Tabs
+  html += `<div class="tabs">
+    <button class="tab ${activeTab==='timeline'?'active':'inactive'}" onclick="setTab('timeline')">Хронология</button>
+    <button class="tab ${activeTab==='stats'?'active':'inactive'}" onclick="setTab('stats')">Статистика</button>
+  </div>`;
+
+  // Timeline
+  if (activeTab === 'timeline') {
+    html += `<div class="filters">`;
+    const filterOpts = [['all','Все','⭐'], ...Object.entries(TYPES).map(([k,v])=>[k,v.label,v.icon])];
+    for (const [k,label,icon] of filterOpts) {
+      html += `<button class="filter-btn ${filter===k?'active':'inactive'}" onclick="setFilter('${k}')">${icon} ${label}</button>`;
+    }
+    html += `</div><div class="events">`;
+    for (const e of filtered) {
+      const t = TYPES[e.type];
+      const up = !e.done && upcoming(e.date);
+      const days = daysUntil(e.date);
+      const cardBg = e.done ? '#0a1628' : t.bg;
+      const cardBorder = e.done ? '#1e293b' : t.color+'44';
+      const cardLeft = e.done ? '#334155' : t.color;
+      const checkBg = e.done ? '#4ade80' : 'transparent';
+      const checkBorder = e.done ? '#4ade80' : '#334155';
+      const nameDeco = e.done ? 'line-through' : 'none';
+      const nameColor = e.done ? '#94a3b8' : '#f0f9ff';
+      html += `<div class="event-card" style="background:${cardBg};border-color:${cardBorder};border-left-color:${cardLeft};opacity:${e.done?0.85:1}">
+        <button class="check-btn" onclick="${canEdit?`toggleDone('${e.id}')`:''}" style="background:${checkBg};border-color:${checkBorder};color:#070d14;cursor:${canEdit?'pointer':'default'};opacity:${canEdit?1:0.45}">${e.done?'✓':''}</button>
+        <div class="event-body">
+          <div class="event-name-row"><span style="font-size:13px">${t.icon}</span><span class="event-name" style="color:${nameColor};text-decoration:${nameDeco}">${e.name}</span></div>
+          <div class="event-meta">${fmt(e.date)}${e.note?`<span class="event-note">· ${e.note}</span>`:''}</div>
+        </div>
+        <div class="event-right">
+          ${up?`<span class="soon-badge">${days===0?'Сегодня':'через '+days+'д'}</span>`:''}
+          ${canEdit?`<button class="del-btn" onclick="removeEvent('${e.id}')">✕</button>`:''}
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+
+    // Add button
+    html += `<div class="add-wrap">`;
+    if (!canEdit) {
+      html += `<button class="add-hint" onclick="toggleEdit()">🔒 Войти для редактирования</button>`;
+    } else if (!showForm) {
+      html += `<button class="add-trigger" onclick="openForm()">+ Добавить запись</button>`;
+    } else {
+      const typeBtns = Object.entries(TYPES).map(([k,t]) => {
+        const active = formType===k;
+        return `<button class="type-btn" onclick="setFormType('${k}')" style="background:${active?t.bg:'#0f172a'};border-color:${active?t.color:'#1e293b'};color:${active?t.color:'#64748b'}">${t.icon} ${t.label}</button>`;
+      }).join('');
+      html += `<div class="form-box">
+        <div class="form-title">Новая запись</div>
+        <div class="type-btns">${typeBtns}</div>
+        <input class="form-input" id="fname" placeholder="Название (напр. Бешенство, Осмотр…)" />
+        <input class="form-input" id="fdate" type="date" />
+        <input class="form-input" id="fnote" placeholder="Заметка (необязательно)" />
+        <div class="form-actions">
+          <button class="btn-save" onclick="addEvent()">Добавить</button>
+          <button class="btn-cancel" onclick="closeForm()">Отмена</button>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Stats tab
+  if (activeTab === 'stats') {
+    html += `<div class="stat-section">`;
+    for (const [key, t] of Object.entries(TYPES)) {
+      const te = events.filter(e => e.type===key);
+      const td = te.filter(e => e.done).length;
+      const p = te.length ? Math.round(td/te.length*100) : 0;
+      html += `<div class="stat-block" style="background:${t.bg};border-color:${t.color}33">
+        <div class="stat-block-header">
+          <span style="font-size:22px">${t.icon}</span>
+          <div style="flex:1"><div style="font-size:15px;font-weight:bold;color:#f0f9ff">${t.label}</div>
+          <div style="font-size:12px;color:#64748b">${td} из ${te.length} выполнено</div></div>
+          <div class="stat-block-pct" style="color:${t.color}">${p}%</div>
+        </div>
+        <div class="stat-mini-bar" style="background:#0f172a">
+          <div class="stat-mini-fill" style="width:${p}%;background:${t.color}"></div>
+        </div>`;
+      for (const e of te) {
+        html += `<div class="stat-item" style="color:${e.done?'#64748b':'#94a3b8'}">
+          <span style="color:${e.done?'#4ade80':'#334155'};font-size:10px">${e.done?'●':'○'}</span>
+          <span style="text-decoration:${e.done?'line-through':'none'}">${e.name}</span>
+          <span style="margin-left:auto;color:#475569">${fmt(e.date)}</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  app.innerHTML = html;
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+function toggleEdit() {
+  if (canEdit) { canEdit = false; showForm = false; render(); }
+  else { showPin = true; pinValue = ''; render(); }
+}
+function closePin() { showPin = false; render(); }
+function pinPress(k) {
+  if (k === '⌫') { pinValue = pinValue.slice(0,-1); render(); return; }
+  if (pinValue.length >= 4) return;
+  pinValue += k;
+  render();
+  if (pinValue.length === 4) {
+    if (pinValue === PIN) {
+      showPin = false; canEdit = true; pinValue = ''; render();
+    } else {
+      pinShake = true; render();
+      setTimeout(() => { pinValue = ''; pinShake = false; render(); }, 600);
+    }
+  }
+}
+function setTab(t) { activeTab = t; render(); }
+function setFilter(f) { filter = f; render(); }
+function openForm() { showForm = true; render(); }
+function closeForm() { showForm = false; render(); }
+function setFormType(t) { formType = t; render(); }
+
+function addEvent() {
+  const name = document.getElementById('fname').value.trim();
+  const date = document.getElementById('fdate').value;
+  const note = document.getElementById('fnote').value.trim();
+  if (!name || !date) return;
+  events.push({ id: Date.now().toString(), type: formType, name, date, note, done: false });
+  saveEvents(events);
+  showForm = false;
+  render();
+}
+function toggleDone(id) {
+  events = events.map(e => e.id===id ? {...e, done:!e.done} : e);
+  saveEvents(events);
+  render();
+}
+function removeEvent(id) {
+  events = events.filter(e => e.id!==id);
+  saveEvents(events);
+  render();
+}
+
+// Telegram WebApp init
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+render();
+</script>
+</body>
+</html>
